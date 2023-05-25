@@ -39,5 +39,6 @@ int main(int argc, char* argv[]) {
   }
   fflush(stdout);
   write(1, output, length + 1);
+  fclose(randfp);
   exit(EXIT_SUCCESS);
 }
