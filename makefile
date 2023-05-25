@@ -1,16 +1,16 @@
-all: enc_server enc_client dec_server dec_client keygen
+TARGETS=enc_server enc_client dec_server dec_client keygen
 
-enc_server: enc_server.c
-	gcc -std=c99 -o enc_server enc_server.c
+.PHONY: all clean
+all: $(TARGETS)
 
-enc_client: enc_client.c 
-	gcc -std=c99 -o enc_client enc_client.c
+clean:
+	@rm $(TARGETS) 2>/dev/null
 
-dec_server: dec_server.c
-	gcc -std=c99 -o dec_server dec_server.c
+define compile
+gcc $(CPPFLAGS) $(CFLAGS) -o $@ $<
+endef
 
-dec_client: dec_client.c
-	gcc -std=c99 -o dec_client dec_client.c
-
-keygen: keygen.c
-	gcc -std=c99 -o keygen keygen.c
+dec_% : CPPFLAGS += -DDEC
+dec_%: %.c ; $(compile)
+enc_%: %.c ; $(compile)
+%: %.c ; $(compile)

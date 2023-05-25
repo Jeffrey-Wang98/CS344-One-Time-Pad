@@ -22,14 +22,19 @@ int main(int argc, char* argv[]) {
   }
 
   // Initialize RNG
-  time_t time_0;
-  srand((unsigned) time(&time_0));
-  
+  FILE* randfp = fopen("/dev/urandom", "r"); 
+  if (!randfp) {
+    fprintf(stderr, "keygen: file or directory does not exist");
+    exit(1);
+  }
+
   char output[length + 1];
   output[length] = '\n';
   for (int i = 0; i < length; ++i) {
-    // Get a random integer from 0 - 26
-    int rand_int = (rand() % 27) + 65;
+    // Get a random integer from 0 - 26 to make it 65 - 91
+    unsigned long long rand_num;
+    fread(&rand_num, sizeof(rand_num), 1, randfp);
+    unsigned long long rand_int = (rand_num % 27) + 65;
     output[i] = (rand_int == 91) ? ' ' : (char)rand_int;
   }
   fflush(stdout);
