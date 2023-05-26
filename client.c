@@ -57,7 +57,7 @@ send_all(int fd, const void* buffer, size_t count) {
       error(2, "CLIENT: ERROR failed to send data");
     }
     if (n == 0) {
-      error(2, "client: error wrong server connection");
+      error(2, "CLIENT: ERROR wrong server connection");
     }
     pos += n;
     count -= n;
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   char* password = "enc_";
 #endif
   // Setting up needed variables for socket
-  int socketFD;
+  int socketFD, portNumber;
   struct sockaddr_in serverAddress;
 
   // Check usage and args
@@ -152,10 +152,12 @@ int main(int argc, char* argv[])
   if (socketFD < 0) {
     error(2, "CLIENT: ERROR opening socket");
   }
-  setupAddressStruct(&serverAddress, atoi(argv[3]));
+  portNumber = atoi(argv[3]);
+  setupAddressStruct(&serverAddress, portNumber);
   
   // Connect to socket
   if (connect(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
+    close(socketFD);
     error(2, "CLIENT: ERROR connecting to socket");
   }
   
@@ -165,8 +167,25 @@ int main(int argc, char* argv[])
   asprintf(&checkConnect, "%s%ld", password, inputLength);
   int checkWritten = send(socketFD, checkConnect, strlen(checkConnect), 0);
   if (checkWritten < 0) {
+    close(socketFD);
     error(2, "CLIENT: ERROR writing to socket");
   }
+  // Sleep for 2 to let server parse pw
+  //sleep(2);
+
+  // recv for server response to connection
+  char* acceptance = malloc(1 * sizeof(char));
+  n = recv(socketFD, acceptance, 1, 0);
+  if (n < 0) {
+    close(socketFD);
+    error(2, "CLIENT: ERROR receiving from socket");
+  }
+  if (atoi(acceptance) == 1) {
+    close(socketFD);
+    fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
+    exit(2);
+  }
+
 
   // Start sending input
   // Loop until it is fully given
@@ -196,6 +215,7 @@ int main(int argc, char* argv[])
   memset(responseBuffer, '\n', inputLength + 1);
   // recv_all returning = everything was received
   recv_all(socketFD, &responseBuffer, inputLength);
+
   printf("%s", responseBuffer);  
 
   // Close socket

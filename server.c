@@ -32,7 +32,7 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber){
 
 char
 calculations(char textChar, char keyChar) {
-  return 'A';
+  return textChar;
 }
 
 char*
@@ -169,28 +169,51 @@ accept_start:;
     charsRead = recv(connectionSocket, pwBuffer, 99, 0);
     if (charsRead < 0) {
       fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
+      close(connectionSocket);
       goto accept_start;
     }
     // Checking recv
     printf("SERVER: got '%s' pwd from client\n", pwBuffer);
     char* pwLoc = check_pw(pwBuffer, password);
+    // Wrong client
     if (pwLoc == NULL) {
-      fprintf(stderr, "SERVER: ERROR wrong client connection");
+      fprintf(stderr, "SERVER: ERROR wrong client connection\n");
+      send(connectionSocket, "1", 2, 0);
       close(connectionSocket);
       goto accept_start;
     }
+    // Correct client
+    send(connectionSocket, "2", 1, 0);
     // replace the password with 0s to convert the incoming 
     // length of data into ssize_t
     // memset(pwLoc, '0', 4);
     // Convert length given in password to ssize_t
     ssize_t textLength = atoi(pwLoc + 4);
     printf("This is the text length I calculated: %ld\n", textLength);
+
+
     
     // Getting text file and key from client
-    char* textBuffer[textLength];
-    char* keyBuffer[textLength];
+    char textBuffer[textLength];
+    char keyBuffer[textLength];
+    char resBuffer[textLength];
 
     // TODO get text and key from client
+    int recStatus = recv_all(connectionSocket, textBuffer, textLength);
+    if (recStatus < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to get input text from client");
+      close(connectionSocket);
+      goto accept_start;
+    }
+    printf("SERVER: this is text file '%s'\n", textBuffer);
+    recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
+    printf("SERVER: this is key file '%s'\n", keyBuffer);
+    printf("SERVER: this is response '%s'\n", resBuffer);
+
+    
+
+
+
 
 
 
