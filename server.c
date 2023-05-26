@@ -30,12 +30,99 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber){
   address->sin_addr.s_addr = INADDR_ANY;
 }
 
+char
+calculations(char textChar, char keyChar) {
+  return 'A';
+}
+
+char*
+check_pw(const char* haystack, const char* needle) {
+  char* needleLoc = strstr(haystack, needle);
+  if (needleLoc == NULL) return NULL;
+  return needleLoc;
+}
+
+/*
+ * Makes sure that the server writes everything it wants to send
+ * down the socket. Returns 0 on success and -1 on send() error.
+ */
+int
+send_all(int fd, const void* buffer, size_t count) {
+  const unsigned char* pos = buffer;
+  while (count) {
+    int n = send(fd, pos, count, 0);
+    if (n < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to send data\n");
+      return -1;
+    }
+    if (n == 0) {
+      fprintf(stderr, "SERVER: ERROR client broke connection");
+      return -1;
+    }
+    pos += n;
+    count -= n;
+  }
+  return 0;
+}
+
+/*
+ * Makes sure that the server reads everything it should receive
+ * from the client. Returns 0 on success and -1 on recv() error.
+ */
+int
+recv_all(int fd, const void* buffer, size_t count) {
+  const unsigned char* pos = buffer;
+  while (count) {
+    int n = recv(fd, (void*)pos, count, 0);
+    if (n < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to receive data");
+      return -1;
+    }
+    pos += n;
+    count -= n;
+  }
+  return 0;
+}
+
+/*
+ * Does recv_all(), but calculates the response sent by
+ * using the key at the same time. Returns 0 on success
+ * and -1 on recv() error
+ */
+int
+create_response(int fd, const void* text, const void* key, void* response, size_t count) {
+  const unsigned char* textPos = text;
+  const unsigned char* keyPos1 = key;
+  unsigned char* resPos = response;
+  const unsigned char* keyPos2 = key;
+  while (count) {
+    int n = recv(fd, (void*)keyPos1, count, 0);
+    if (n < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to receive key");
+      return -1;
+    }
+    keyPos1 += n;
+    count -= n;
+    // Now calculate the response using what's given from client
+    while(keyPos2 < keyPos1) {
+      *resPos = calculations(*textPos, *keyPos2);
+      resPos++;
+      textPos++;
+      keyPos2++;
+    }
+
+  }
+  return 0;
+}
+
 int main(int argc, char* argv[])
 {
 #ifdef DEC
   printf("I'm dec_server!\n");
+  char* password = "dec_";
 #else
   printf("I'm enc_server!\n");
+  char* password = "enc_";
 #endif
   // setting up socket variables
   int connectionSocket, listenSocket, charsRead;
@@ -84,6 +171,30 @@ accept_start:;
       fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
       goto accept_start;
     }
+    // Checking recv
+    printf("SERVER: got '%s' pwd from client\n", pwBuffer);
+    char* pwLoc = check_pw(pwBuffer, password);
+    if (pwLoc == NULL) {
+      fprintf(stderr, "SERVER: ERROR wrong client connection");
+      close(connectionSocket);
+      goto accept_start;
+    }
+    // replace the password with 0s to convert the incoming 
+    // length of data into ssize_t
+    // memset(pwLoc, '0', 4);
+    // Convert length given in password to ssize_t
+    ssize_t textLength = atoi(pwLoc + 4);
+    printf("This is the text length I calculated: %ld\n", textLength);
+    
+    // Getting text file and key from client
+    char* textBuffer[textLength];
+    char* keyBuffer[textLength];
+
+    // TODO get text and key from client
+
+
+
+    
 
   }
 

@@ -11,8 +11,15 @@
 #include <arpa/inet.h>
 #include <err.h>
 #include <errno.h>
-#include <error.h>
 #include <fcntl.h>
+
+// Allows for easier printing of errors exactly how 
+// I like them
+void
+error(int exitCode, char* msg) {
+  fprintf(stderr, "%s", msg);
+  exit(exitCode);
+}
 
 void
 setupAddressStruct(struct sockaddr_in* address, int portNumber) {
@@ -22,8 +29,7 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber) {
 
   struct hostent* hostInfo = gethostbyname("localhost");
   if (hostInfo == NULL) {
-    fprintf(stderr, "CLIENT: ERROR, no such host\n");
-    exit(1);
+    error(1, "CLIENT: ERROR, no such host\n");
   }
   memcpy((char*)&address->sin_addr.s_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
 }
@@ -48,12 +54,10 @@ send_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = send(fd, pos, count, 0);
     if (n < 0) {
-      fprintf(stderr, "CLIENT: ERROR failed to send data");
-      exit(2);
+      error(2, "CLIENT: ERROR failed to send data");
     }
     if (n == 0) {
-      fprintf(stderr, "CLIENT: ERROR wrong server connection");
-      exit(2);
+      error(2, "client: error wrong server connection");
     }
     pos += n;
     count -= n;
@@ -71,8 +75,7 @@ recv_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = recv(fd, (void*)pos, count, 0);
     if (n < 0) {
-      fprintf(stderr, "CLIENT: ERROR failed to receive data");
-      exit(2);
+      error(2, "CLIENT: ERROR failed to receive data");
     }
     pos += n;
     count -= n;
@@ -106,13 +109,11 @@ int main(int argc, char* argv[])
   // Open files
   FILE* inputFile = fopen(argv[1], "re");
   if (inputFile == NULL) {
-    fprintf(stderr, "CLIENT: ERROR could not open input file");
-    exit(1);
+    error(1, "CLIENT: ERROR could not open input file");
   }
   FILE* keyFile = fopen(argv[2], "re");
   if (keyFile == NULL) {
-    fprintf(stderr, "CLIENT: ERROR could not open key file");
-    exit(1);
+    error(1, "CLIENT: ERROR could not open key file");
   }
   printf("Opened the files\n");
   size_t n;
@@ -121,19 +122,16 @@ int main(int argc, char* argv[])
   char* key = NULL;
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
-    fprintf(stderr, "CLIENT: ERROR could not read input file");
-    exit(1);
+    error(1, "CLIENT: ERROR could not read input file");
   }
   printf("Managed to read input file of length %ld\n", inputLength);
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
-    fprintf(stderr, "CLIENT: ERROR could not read key file");
-    exit(1);
+    error(1, "CLIENT: ERROR could not read key file");
   }
   printf("Managed to read key file of length %ld\n", keyLength);
   if (inputLength > keyLength) {
-    fprintf(stderr, "CLIENT: ERROR key is shorter than input");
-    exit(1);
+    error(1, "CLIENT: ERROR key is shorter than input");
   }
   // Check if there are bad chars in the given files
   find_bad_char(input);
@@ -152,15 +150,13 @@ int main(int argc, char* argv[])
   // Create socket with TCP 
   socketFD = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFD < 0) {
-    fprintf(stderr, "CLIENT: ERROR opening socket");
-    exit(2);
+    error(2, "CLIENT: ERROR opening socket");
   }
   setupAddressStruct(&serverAddress, atoi(argv[3]));
   
   // Connect to socket
   if (connect(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
-    fprintf(stderr, "CLIENT: ERROR connecting to socket");
-    exit(2);
+    error(2, "CLIENT: ERROR connecting to socket");
   }
   
   
@@ -169,8 +165,7 @@ int main(int argc, char* argv[])
   asprintf(&checkConnect, "%s%ld", password, inputLength);
   int checkWritten = send(socketFD, checkConnect, strlen(checkConnect), 0);
   if (checkWritten < 0) {
-    fprintf(stderr, "CLIENT: ERROR writing to socket");
-    exit(2);
+    error(2, "CLIENT: ERROR writing to socket");
   }
 
   // Start sending input
