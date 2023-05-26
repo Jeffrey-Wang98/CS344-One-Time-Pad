@@ -27,6 +27,16 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber) {
   memcpy((char*)&address->sin_addr.s_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
 }
 
+void
+find_bad_char(const char* line) {
+  const char* badChars = "!@#$%^&*()_+-={}[]|;:\'\"\\<,>./?`~0123456789";
+  char* badCharPtr = strpbrk(line, badChars);
+  if (badCharPtr != NULL) {
+    fprintf(stderr, "CLIENT: ERROR invalid characters in file '%c'", *badCharPtr);
+    exit(1);
+  }
+}
+
 /*
  * Makes sure that the client writes everything it wants to send
  * down the socket. Returns 0 on success and -1 on write() error.
@@ -77,33 +87,37 @@ int main(int argc, char* argv[])
     fprintf(stderr, "CLIENT: ERROR could not open key file");
     exit(1);
   }
+  printf("Opened the files\n");
   size_t n;
   // Save the contents of the files as strings
-  char* input;
-  char* key;
+  char* input = NULL;
+  char* key = NULL;
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
-    fclose(inputFile);
-    fclose(keyFile);
     fprintf(stderr, "CLIENT: ERROR could not read input file");
     exit(1);
   }
+  printf("Managed to read input file of length %ld\n", inputLength);
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
-    fclose(inputFile);
-    fclose(keyFile);
     fprintf(stderr, "CLIENT: ERROR could not read key file");
     exit(1);
   }
-  if (inputLength < keyLength) {
-    fclose(inputFile);
-    fclose(keyFile);
+  printf("Managed to read key file of length %ld\n", keyLength);
+  if (inputLength > keyLength) {
     fprintf(stderr, "CLIENT: ERROR key is shorter than input");
     exit(1);
   }
+  // Check if there are bad chars in the given files
+  find_bad_char(input);
+  find_bad_char(key);
+  printf("The input is %s\n", input);
+  printf("The key is %s\n", key);
 
   // TODO continue with input and key preparation for server
-
+  fclose(inputFile);
+  fclose(keyFile);
+  exit(0);
   // Create socket with TCP 
   socketFD = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFD < 0) {
