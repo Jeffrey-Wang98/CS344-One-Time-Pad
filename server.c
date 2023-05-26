@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -10,6 +12,23 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+
+// Allows for easier printing of errors exactly how 
+// I like them
+void
+error(int exitCode, char* msg) {
+  fprintf(stderr, "%s", msg);
+  exit(exitCode);
+}
+
+void
+setupAddressStruct(struct sockaddr_in* address, int portNumber){
+  memset((char*) address, '\0', sizeof(*address)); 
+  address->sin_family = AF_INET;
+  address->sin_port = htons(portNumber);
+  address->sin_addr.s_addr = INADDR_ANY;
+}
 
 int main(int argc, char* argv[])
 {
@@ -18,11 +37,63 @@ int main(int argc, char* argv[])
 #else
   printf("I'm enc_server!\n");
 #endif
-  if (argc != 2) {
+  // setting up socket variables
+  int connectionSocket, listenSocket, charsRead;
+  struct sockaddr_in serverAddress, clientAddress;
+  socklen_t sizeOfClientInfo = sizeof(clientAddress);
+  char pwBuffer[100];
+
+  // checking args and usage
+  if (argc < 2) {
     fprintf(stderr, "USAGE: ./%s port", argv[0]);
     exit(1);
   }
+  
+  // setup listening socket
+  listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+  if (listenSocket < 0) {
+    error(1, "SERVER: Error opening socket");
+  }
+
   int portNumber = atoi(argv[1]);
+
+  setupAddressStruct(&serverAddress, portNumber);
+
+  // bind listen socket to the given port number
+  if (bind(listenSocket, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
+    error(1, "SERVER: Error binding socket to port");
+  }
+
+  listen(listenSocket, 5);
+  
+  while(1) {
+    // accept connection
+accept_start:;
+    connectionSocket = accept(listenSocket, (struct sockaddr*) &clientAddress, &sizeOfClientInfo);
+    if (connectionSocket < 0) {
+      fprintf(stderr, "SERVER: ERROR on accept\n");
+    }
+
+    printf("SERVER: Connected to client running at host %d port %d\n", 
+                          ntohs(clientAddress.sin_addr.s_addr),
+                          ntohs(clientAddress.sin_port));
+
+    memset(pwBuffer, '\0', 100);
+    charsRead = recv(connectionSocket, pwBuffer, 99, 0);
+    if (charsRead < 0) {
+      fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
+      goto accept_start;
+    }
+
+  }
+
+
+
+
+
+
+
+
   struct hostent* hostInfo;
   struct sockaddr_in address;
   // Clear out address for reassign

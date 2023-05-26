@@ -1,4 +1,5 @@
 #define _POSIX_C_SOURCE 200809L
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,33 +40,59 @@ find_bad_char(const char* line) {
 
 /*
  * Makes sure that the client writes everything it wants to send
- * down the socket. Returns 0 on success and -1 on write() error.
+ * down the socket. Returns on success and exit(2) on send() error.
  */
-int
-write_all(int fd, const void* buffer, size_t count) {
+void
+send_all(int fd, const void* buffer, size_t count) {
   const unsigned char* pos = buffer;
   while (count) {
-    int n = write(fd, pos, count);
-    if (n == -1) return -1;
-    pos += 1;
+    int n = send(fd, pos, count, 0);
+    if (n < 0) {
+      fprintf(stderr, "CLIENT: ERROR failed to send data");
+      exit(2);
+    }
+    if (n == 0) {
+      fprintf(stderr, "CLIENT: ERROR wrong server connection");
+      exit(2);
+    }
+    pos += n;
     count -= n;
   }
-  return 0;
+  return;
+}
+
+/*
+ * Makes sure that the client reads everything it should receive
+ * from the server. Returns on success and exit(2) on recv() error.
+ */
+void
+recv_all(int fd, const void* buffer, size_t count) {
+  const unsigned char* pos = buffer;
+  while (count) {
+    int n = recv(fd, (void*)pos, count, 0);
+    if (n < 0) {
+      fprintf(stderr, "CLIENT: ERROR failed to receive data");
+      exit(2);
+    }
+    pos += n;
+    count -= n;
+  }
+  return;
 }
 
 int main(int argc, char* argv[])
 {
 #ifdef DEC
   printf("I'm dec_client!\n");
-  char* password = "dec_client";
+  char* password = "dec_";
 #else
   printf("I'm enc_client!\n");
-  char* password = "enc_client";
+  char* password = "enc_";
 #endif
-  // Setting up needed variables
-  int socketFD, portNumber, charsWritten, charsRead;
-
+  // Setting up needed variables for socket
+  int socketFD;
   struct sockaddr_in serverAddress;
+
   // Check usage and args
   if (argc < 4) {
 #ifdef DEC
@@ -115,24 +142,69 @@ int main(int argc, char* argv[])
   printf("The key is %s\n", key);
 
   // TODO continue with input and key preparation for server
-  fclose(inputFile);
-  fclose(keyFile);
-  exit(0);
+  //fclose(inputFile);
+  //fclose(keyFile);
+  //exit(0);
+  // Remove the trailing \n
+  inputLength--;
+  keyLength--;
+
   // Create socket with TCP 
   socketFD = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFD < 0) {
     fprintf(stderr, "CLIENT: ERROR opening socket");
     exit(2);
   }
-  setupAddressStruct(&serverAddress, atoi(argv[2]));
+  setupAddressStruct(&serverAddress, atoi(argv[3]));
   
   // Connect to socket
   if (connect(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
-    fprintf(stderr, "CLIENT: ERROR connecting");
+    fprintf(stderr, "CLIENT: ERROR connecting to socket");
     exit(2);
   }
   
   
+  // Send password and input length
+  char* checkConnect;
+  asprintf(&checkConnect, "%s%ld", password, inputLength);
+  int checkWritten = send(socketFD, checkConnect, strlen(checkConnect), 0);
+  if (checkWritten < 0) {
+    fprintf(stderr, "CLIENT: ERROR writing to socket");
+    exit(2);
+  }
+
+  // Start sending input
+  // Loop until it is fully given
+  // Old code
+  /*
+  while (charsWritten < inputLength) {
+    charsWritten = send(socketFD, input, inputLength, 0);
+    if (charsWritten < 0) {
+      fprintf(stderr, "CLIENT: ERROR writing to socket");
+      exit(2);
+    }
+    if (charsWritten == 0) {
+      fprintf(stderr, "CLIENT: ERROR wrong server");
+      exit(2);
+    }
+
+  }
+  */
+  // Send text file
+  // send_all returning = everything was sent
+  send_all(socketFD, input, inputLength);
+  // Only need to send the key up to the end of input
+  send_all(socketFD, key, inputLength);
+
+  char responseBuffer[inputLength + 1];
+  // fill buffer with new lines
+  memset(responseBuffer, '\n', inputLength + 1);
+  // recv_all returning = everything was received
+  recv_all(socketFD, &responseBuffer, inputLength);
+  printf("%s", responseBuffer);  
+
+  // Close socket
+  close(socketFD);
 
   exit(0);
 }
