@@ -13,15 +13,91 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include "conqueue.h"
 
-// Allows for easier printing of errors exactly how 
-// I like them
+// Function Definitions
+void error(int exitCode, char* msg);
+void setupAddressStruct(struct sockaddr_in* address, int portNumber);
+char calculations(const char textChar, const char keyChar); 
+char* check_pw(const char* haystack, const char* needle);
+int send_all(int fd, const void* buffer, size_t count);
+int recv_all(int fd, const void* buffer, size_t count);
+int create_response(int fd, const void* text, const void* key, void* response, size_t count); 
+void handle_connection(int* socketPtr);
+void* thread_function(void* arg);
+
+// Set global variables
+#ifdef DEC
+  const char* password = "dec_";
+#else
+  const char* password = "enc_";
+#endif
+// Making a pool of threads for concurrency
+#define THREAD_POOL_SIZE 5
+pthread_t thread_pool[THREAD_POOL_SIZE];
+
+int main(int argc, char* argv[])
+{
+  // setting up socket variables
+  int connectionSocket, listenSocket;
+  struct sockaddr_in serverAddress, clientAddress;
+  socklen_t sizeOfClientInfo = sizeof(clientAddress);
+
+  // checking args and usage
+  if (argc < 2) {
+    fprintf(stderr, "USAGE: ./%s port", argv[0]);
+    exit(1);
+  }
+  
+  // setup listening socket
+  listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+  if (listenSocket < 0) {
+    error(1, "SERVER: Error opening socket");
+  }
+
+  int portNumber = atoi(argv[1]);
+
+  setupAddressStruct(&serverAddress, portNumber);
+
+  // bind listen socket to the given port number
+  if (bind(listenSocket, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
+    error(1, "SERVER: Error binding socket to port");
+  }
+
+  listen(listenSocket, 5);
+  
+  // Setup thread pool
+  for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+    pthread_create(&thread_pool[i], NULL, thread_function, NULL);
+  }
+
+
+  while(1) {
+    // accept connection
+    connectionSocket = accept(listenSocket, (struct sockaddr*) &clientAddress, &sizeOfClientInfo);
+    if (connectionSocket < 0) {
+      fprintf(stderr, "SERVER: ERROR on accept\n");
+    }
+    int* socketPtr = &connectionSocket;
+    enqueue(socketPtr);
+    handle_connection(socketPtr);
+  }
+
+  exit(0);
+}
+
+// Allows for easier printing of errors
+// exactly how I like them
 void
 error(int exitCode, char* msg) {
   fprintf(stderr, "%s", msg);
   exit(exitCode);
 }
 
+/*
+ * Creates the address struct needed for socket
+ * and network capabilities
+ */
 void
 setupAddressStruct(struct sockaddr_in* address, int portNumber){
   memset((char*) address, '\0', sizeof(*address)); 
@@ -30,6 +106,12 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber){
   address->sin_addr.s_addr = INADDR_ANY;
 }
 
+/*
+ * Takes a char from text and key and calculates
+ * the char to save in server response string.
+ * Will formula depending on DEC defined
+ * during compilation
+ */
 char
 calculations(const char textChar, const char keyChar) {
   int textInt = (int)textChar - 65;
@@ -50,6 +132,12 @@ calculations(const char textChar, const char keyChar) {
   return result;
 }
 
+/*
+ * Runs strstr() to check if the password
+ * is contained within the password given
+ * by the client. Password changes depending
+ * on DEC defined during compilation
+ */
 char*
 check_pw(const char* haystack, const char* needle) {
   char* needleLoc = strstr(haystack, needle);
@@ -130,125 +218,69 @@ create_response(int fd, const void* text, const void* key, void* response, size_
   return 0;
 }
 
-int main(int argc, char* argv[])
-{
-#ifdef DEC
-  //printf("I'm dec_server!\n");
-  char* password = "dec_";
-#else
-  //printf("I'm enc_server!\n");
-  char* password = "enc_";
-#endif
-  // setting up socket variables
-  int connectionSocket, listenSocket, charsRead;
-  struct sockaddr_in serverAddress, clientAddress;
-  socklen_t sizeOfClientInfo = sizeof(clientAddress);
+/*
+ * Run by the thread function in order to handle sockets
+ * created by accept in main. 
+ */
+void
+handle_connection(int* socketPtr) {
+  int connectionSocket = *socketPtr;
+  int charsRead;
   char pwBuffer[100];
-
-  // checking args and usage
-  if (argc < 2) {
-    fprintf(stderr, "USAGE: ./%s port", argv[0]);
-    exit(1);
-  }
-  
-  // setup listening socket
-  listenSocket = socket(AF_INET, SOCK_STREAM, 0);
-  if (listenSocket < 0) {
-    error(1, "SERVER: Error opening socket");
-  }
-
-  int portNumber = atoi(argv[1]);
-
-  setupAddressStruct(&serverAddress, portNumber);
-
-  // bind listen socket to the given port number
-  if (bind(listenSocket, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
-    error(1, "SERVER: Error binding socket to port");
-  }
-
-  listen(listenSocket, 5);
-  
-  while(1) {
-    // accept connection
-accept_start:;
-    connectionSocket = accept(listenSocket, (struct sockaddr*) &clientAddress, &sizeOfClientInfo);
-    if (connectionSocket < 0) {
-      fprintf(stderr, "SERVER: ERROR on accept\n");
-    }
-    /*
-    printf("SERVER: Connected to client running at host %d port %d\n", 
-                          ntohs(clientAddress.sin_addr.s_addr),
-                          ntohs(clientAddress.sin_port));*/
-
-    memset(pwBuffer, '\0', 100);
-    charsRead = recv(connectionSocket, pwBuffer, 99, 0);
-    if (charsRead < 0) {
-      fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
-      close(connectionSocket);
-      goto accept_start;
-    }
-    // Checking recv
-    //printf("SERVER: got '%s' pwd from client\n", pwBuffer);
-    char* pwLoc = check_pw(pwBuffer, password);
-    // Wrong client
-    if (pwLoc == NULL) {
-      fprintf(stderr, "SERVER: ERROR wrong client connection\n");
-      send(connectionSocket, "1", 2, 0);
-      close(connectionSocket);
-      goto accept_start;
-    }
-    // Correct client
-    send(connectionSocket, "2", 1, 0);
-    // replace the password with 0s to convert the incoming 
-    // length of data into ssize_t
-    // memset(pwLoc, '0', 4);
-    // Convert length given in password to ssize_t
-    ssize_t textLength = atoi(pwLoc + 4);
-    //printf("This is the text length I calculated: %ld\n", textLength);
-    
-
-    
-    // Getting text file and key from client
-    char textBuffer[textLength];
-    char keyBuffer[textLength];
-    char resBuffer[textLength];
-
-    // TODO get text and key from client
-    int recStatus = recv_all(connectionSocket, textBuffer, textLength);
-    if (recStatus < 0) {
-      fprintf(stderr, "SERVER: ERROR failed to get input text from client");
-      close(connectionSocket);
-      goto accept_start;
-    }
-    //printf("SERVER: this is text file '%s'\n", textBuffer);
-    recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
-    //printf("SERVER: this is key file '%s'\n", keyBuffer);
-    //printf("SERVER: this is response '%s'\n", resBuffer);
-    int sendStatus = send_all(connectionSocket, resBuffer, textLength);
-    if (sendStatus < 0) {
-      fprintf(stderr, "SERVER: ERROR failed to send results\n");
-    }
+  memset(pwBuffer, '\0', 100);
+  charsRead = recv(connectionSocket, pwBuffer, 99, 0);
+  if (charsRead < 0) {
+    fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
     close(connectionSocket);
+    return;
   }
-  /*
-  struct hostent* hostInfo;
-  struct sockaddr_in address;
-  // Clear out address for reassign
-  memset((char*) &address, '\0', sizeof(address));
-  address.sin_port = htons(portNumber);
-  hostInfo = gethostbyname("localhost");
-  if (hostInfo == NULL) {
-    fprintf(stderr, "SERVER: ERROR, no such host\n");
-    exit(1);
+  // Checking recv
+  char* pwLoc = check_pw(pwBuffer, password);
+  // Wrong client
+  if (pwLoc == NULL) {
+    fprintf(stderr, "SERVER: ERROR wrong client connection\n");
+    send(connectionSocket, "1", 2, 0);
+    close(connectionSocket);
+    return;
   }
-  // Get the first IP address in DNS for localhost
-  memcpy(&address.sin_addr.s_addr, hostInfo->h_addr_list[0], hostInfo->h_length);
-  
-  printf("The IP address of the localhost is : %s\n", inet_ntoa(address.sin_addr));
-  printf("The port number in the socket address: %d\n", ntohs(address.sin_port));
-  */
+  // Correct client
+  send(connectionSocket, "2", 1, 0);
+  // Convert length given in password to ssize_t
+  ssize_t textLength = atoi(pwLoc + 4);
+   
+  // Getting text file and key from client
+  char textBuffer[textLength];
+  char keyBuffer[textLength];
+  char resBuffer[textLength];
+  // Get all of textBuffer
+  int recStatus = recv_all(connectionSocket, textBuffer, textLength);
+  if (recStatus < 0) {
+    fprintf(stderr, "SERVER: ERROR failed to get input text from client");
+    close(connectionSocket);
+    return;
+  }
+  // While getting keyBuffer, encrypt/decrypt while waiting for more
+  recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
+  int sendStatus = send_all(connectionSocket, resBuffer, textLength);
+  if (sendStatus < 0) {
+    fprintf(stderr, "SERVER: ERROR failed to send results\n");
+  }
+  close(connectionSocket);
 
+}
 
-
-  exit(0);
+/*
+ * Thread function that forever waits and dequeues
+ * connection sockets from the socket queue when available
+ */
+void*
+thread_function(void* args) {
+  while(1) {
+    //int* socketPtr = dequeue();
+    //if (socketPtr == NULL) {
+      // wait
+    //}
+    //handle_connection(socketPtr);
+  }
+  return NULL;
 }

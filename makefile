@@ -7,7 +7,7 @@ clean:
 	@rm $(TARGETS) 2>/dev/null
 
 define compile
-gcc $(CPPFLAGS) -std=c99 -pthread -o $@ $<
+gcc $(CPPFLAGS) -std=c99 -pthread conqueue.c -o $@ $<
 endef
 
 dec_% : CPPFLAGS += -DDEC
