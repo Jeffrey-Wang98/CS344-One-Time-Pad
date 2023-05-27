@@ -248,7 +248,6 @@ handle_connection(int* socketPtr) {
     return;
   }
   // Checking recv
-  fprintf(stderr, "SERVER: RECEIVED '%s' as password\n", pwBuffer);
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
   // Wrong client

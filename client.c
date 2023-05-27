@@ -109,36 +109,10 @@ retry_key:;
   }
   
   // Send password and input length
-  // char* checkConnect;
-  // asprintf(&checkConnect, "%s%ld", password, inputLength);
   send_all(socketFD, password, strlen(password));
-  /*
-  int checkWritten = send(socketFD, checkConnect, strlen(checkConnect), 0);
-  if (checkWritten < 0) {
-    close(socketFD);
-    error(2, "CLIENT: ERROR writing to socket\n");
-  }
-  */
-
-  // recv for server response to connection
-  // Give socket a 5 sec timeout
-  /*struct timeval timeout;
-  timeout.tv_sec = 5;
-  timeout.tv_usec = 0;
-  setsockopt(socketFD, SOL_SOCKET, SO_RCVTIMEO, (const char*) &timeout, sizeof(timeout));
-  */
-  //char* acceptance = malloc(2 * sizeof(char));
+  
   int acceptance = 1;
-  // Clear acceptance buffer 
-  //memset(acceptance, '\0', 2);
   recv_all(socketFD, &acceptance, sizeof(acceptance));
-  /*
-  n = recv(socketFD, acceptance, 1, 0);
-  if (n < 0) {
-    close(socketFD);
-    error(2, "CLIENT: ERROR receiving from socket\n");
-  }
-  */
   // Acceptance of 0 = accepted
   if (acceptance == -1) {
     close(socketFD);
