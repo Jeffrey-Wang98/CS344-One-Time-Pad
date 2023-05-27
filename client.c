@@ -86,10 +86,10 @@ recv_all(int fd, const void* buffer, size_t count) {
 int main(int argc, char* argv[])
 {
 #ifdef DEC
-  printf("I'm dec_client!\n");
+  //printf("I'm dec_client!\n");
   char* password = "dec_";
 #else
-  printf("I'm enc_client!\n");
+  //printf("I'm enc_client!\n");
   char* password = "enc_";
 #endif
   // Setting up needed variables for socket
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 #endif
     exit(0);
   }
-  printf("Made it to opening files\n");
+  //printf("Made it to opening files\n");
   // Open files
   FILE* inputFile = fopen(argv[1], "re");
   if (inputFile == NULL) {
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
   if (keyFile == NULL) {
     error(1, "CLIENT: ERROR could not open key file");
   }
-  printf("Opened the files\n");
+  //printf("Opened the files\n");
   size_t n;
   // Save the contents of the files as strings
   char* input = NULL;
@@ -124,20 +124,20 @@ int main(int argc, char* argv[])
   if (inputLength == -1) {
     error(1, "CLIENT: ERROR could not read input file");
   }
-  printf("Managed to read input file of length %ld\n", inputLength);
+  //printf("Managed to read input file of length %ld\n", inputLength);
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
     error(1, "CLIENT: ERROR could not read key file");
   }
-  printf("Managed to read key file of length %ld\n", keyLength);
+  //printf("Managed to read key file of length %ld\n", keyLength);
   if (inputLength > keyLength) {
     error(1, "CLIENT: ERROR key is shorter than input");
   }
   // Check if there are bad chars in the given files
   find_bad_char(input);
   find_bad_char(key);
-  printf("The input is %s\n", input);
-  printf("The key is %s\n", key);
+  //printf("The input is %s\n", input);
+  //printf("The key is %s\n", key);
 
   // TODO continue with input and key preparation for server
   //fclose(inputFile);

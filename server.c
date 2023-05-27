@@ -31,8 +31,23 @@ setupAddressStruct(struct sockaddr_in* address, int portNumber){
 }
 
 char
-calculations(char textChar, char keyChar) {
-  return textChar;
+calculations(const char textChar, const char keyChar) {
+  int textInt = (int)textChar - 65;
+  int keyInt = (int)keyChar - 65;
+  // space will become -33. Replace to 26.
+  // A - Z = 0 - 25, ' ' = 26
+  if (textInt == -33) textInt = 26;
+  if (keyInt == -33) keyInt = 26;
+#ifdef DEC
+  int step1 = textInt - keyInt;
+#else
+  int step1 = textInt + keyInt;
+#endif
+  if (step1 < 0) step1 += 27;
+  int result = (char)(step1 % 27 + 65);
+  if (result == '[') result = ' ';
+
+  return result;
 }
 
 char*
@@ -190,7 +205,7 @@ accept_start:;
     // Convert length given in password to ssize_t
     ssize_t textLength = atoi(pwLoc + 4);
     printf("This is the text length I calculated: %ld\n", textLength);
-
+    
 
     
     // Getting text file and key from client
@@ -209,25 +224,13 @@ accept_start:;
     recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
     printf("SERVER: this is key file '%s'\n", keyBuffer);
     printf("SERVER: this is response '%s'\n", resBuffer);
-
-    
-
-
-
-
-
-
-    
-
+    int sendStatus = send_all(connectionSocket, resBuffer, textLength);
+    if (sendStatus < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to send results\n");
+    }
+    close(connectionSocket);
   }
-
-
-
-
-
-
-
-
+  /*
   struct hostent* hostInfo;
   struct sockaddr_in address;
   // Clear out address for reassign
@@ -243,7 +246,7 @@ accept_start:;
   
   printf("The IP address of the localhost is : %s\n", inet_ntoa(address.sin_addr));
   printf("The port number in the socket address: %d\n", ntohs(address.sin_port));
-
+  */
 
 
 
