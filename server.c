@@ -36,6 +36,10 @@ void* thread_function(void* arg);
 #define THREAD_POOL_SIZE 5
 pthread_t thread_pool[THREAD_POOL_SIZE];
 
+// Create mutex and condition for critical sections
+pthread_mutex_t queueMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t queueFull = PTHREAD_COND_INITIALIZER;
+
 int main(int argc, char* argv[])
 {
   // setting up socket variables
@@ -71,7 +75,6 @@ int main(int argc, char* argv[])
     pthread_create(&thread_pool[i], NULL, thread_function, NULL);
   }
 
-
   while(1) {
     // accept connection
     connectionSocket = accept(listenSocket, (struct sockaddr*) &clientAddress, &sizeOfClientInfo);
@@ -79,10 +82,13 @@ int main(int argc, char* argv[])
       fprintf(stderr, "SERVER: ERROR on accept\n");
     }
     int* socketPtr = &connectionSocket;
+    // Critical section of adding connections to the queue
+    pthread_mutex_lock(&queueMutex);
     enqueue(socketPtr);
-    handle_connection(socketPtr);
+    // signal to the 5 threads that there are new connections
+    pthread_cond_signal(&queueFull);
+    pthread_mutex_unlock(&queueMutex);
   }
-
   exit(0);
 }
 
@@ -276,11 +282,17 @@ handle_connection(int* socketPtr) {
 void*
 thread_function(void* args) {
   while(1) {
-    //int* socketPtr = dequeue();
-    //if (socketPtr == NULL) {
-      // wait
-    //}
-    //handle_connection(socketPtr);
+    // Critical section to dequeue from shared queue
+    pthread_mutex_lock(&queueMutex);
+    int* socketPtr = dequeue();
+    // if socketPtr is NULL, wait for signal
+    // that main has added more connections to queue
+    while (socketPtr == NULL) {
+      pthread_cond_wait(&queueFull, &queueMutex);
+      socketPtr = dequeue();
+    }
+    pthread_mutex_unlock(&queueMutex);
+    handle_connection(socketPtr);
   }
   return NULL;
 }
