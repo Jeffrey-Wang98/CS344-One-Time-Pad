@@ -105,7 +105,9 @@ int main(int argc, char* argv[])
   timeout.tv_sec = 5;
   timeout.tv_usec = 0;
   setsockopt(socketFD, SOL_SOCKET, SO_RCVTIMEO, (const char*) &timeout, sizeof(timeout));
-  char* acceptance = malloc(1 * sizeof(char));
+  char* acceptance = malloc(2 * sizeof(char));
+  // Clear acceptance buffer 
+  memset(acceptance, '\0', 2);
   n = recv(socketFD, acceptance, 1, 0);
   if (n < 0) {
     close(socketFD);
