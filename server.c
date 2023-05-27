@@ -133,10 +133,10 @@ create_response(int fd, const void* text, const void* key, void* response, size_
 int main(int argc, char* argv[])
 {
 #ifdef DEC
-  printf("I'm dec_server!\n");
+  //printf("I'm dec_server!\n");
   char* password = "dec_";
 #else
-  printf("I'm enc_server!\n");
+  //printf("I'm enc_server!\n");
   char* password = "enc_";
 #endif
   // setting up socket variables
@@ -175,10 +175,10 @@ accept_start:;
     if (connectionSocket < 0) {
       fprintf(stderr, "SERVER: ERROR on accept\n");
     }
-
+    /*
     printf("SERVER: Connected to client running at host %d port %d\n", 
                           ntohs(clientAddress.sin_addr.s_addr),
-                          ntohs(clientAddress.sin_port));
+                          ntohs(clientAddress.sin_port));*/
 
     memset(pwBuffer, '\0', 100);
     charsRead = recv(connectionSocket, pwBuffer, 99, 0);
@@ -188,7 +188,7 @@ accept_start:;
       goto accept_start;
     }
     // Checking recv
-    printf("SERVER: got '%s' pwd from client\n", pwBuffer);
+    //printf("SERVER: got '%s' pwd from client\n", pwBuffer);
     char* pwLoc = check_pw(pwBuffer, password);
     // Wrong client
     if (pwLoc == NULL) {
@@ -204,7 +204,7 @@ accept_start:;
     // memset(pwLoc, '0', 4);
     // Convert length given in password to ssize_t
     ssize_t textLength = atoi(pwLoc + 4);
-    printf("This is the text length I calculated: %ld\n", textLength);
+    //printf("This is the text length I calculated: %ld\n", textLength);
     
 
     
@@ -220,10 +220,10 @@ accept_start:;
       close(connectionSocket);
       goto accept_start;
     }
-    printf("SERVER: this is text file '%s'\n", textBuffer);
+    //printf("SERVER: this is text file '%s'\n", textBuffer);
     recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
-    printf("SERVER: this is key file '%s'\n", keyBuffer);
-    printf("SERVER: this is response '%s'\n", resBuffer);
+    //printf("SERVER: this is key file '%s'\n", keyBuffer);
+    //printf("SERVER: this is response '%s'\n", resBuffer);
     int sendStatus = send_all(connectionSocket, resBuffer, textLength);
     if (sendStatus < 0) {
       fprintf(stderr, "SERVER: ERROR failed to send results\n");

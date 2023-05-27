@@ -210,11 +210,12 @@ int main(int argc, char* argv[])
   // Only need to send the key up to the end of input
   send_all(socketFD, key, inputLength);
 
-  char responseBuffer[inputLength + 1];
+  char responseBuffer[inputLength + 2];
   // fill buffer with new lines
-  memset(responseBuffer, '\n', inputLength + 1);
+  memset(responseBuffer, '\0', inputLength + 2);
   // recv_all returning = everything was received
   recv_all(socketFD, &responseBuffer, inputLength);
+  responseBuffer[inputLength] = '\n';
 
   printf("%s", responseBuffer);  
 
