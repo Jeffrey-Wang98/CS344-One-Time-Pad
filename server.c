@@ -238,9 +238,9 @@ void
 handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
-  char pwBuffer[100];
-  memset(pwBuffer, '\0', 100);
-  charsRead = recv(connectionSocket, pwBuffer, 99, 0);
+  char pwBuffer[15];
+  memset(pwBuffer, '\0', 15);
+  charsRead = recv(connectionSocket, pwBuffer, 14, 0);
   if (charsRead < 0) {
     fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
     close(connectionSocket);
@@ -248,6 +248,7 @@ handle_connection(int* socketPtr) {
   }
   // Checking recv
   char* pwLoc = check_pw(pwBuffer, password);
+  // Checking the password
   // Wrong client
   if (pwLoc == NULL) {
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");

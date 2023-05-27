@@ -47,26 +47,44 @@ int main(int argc, char* argv[])
   // Open files
   FILE* inputFile = fopen(argv[1], "re");
   if (inputFile == NULL) {
-    error(1, "CLIENT: ERROR could not open input file");
+    error(1, "CLIENT: ERROR could not open input file\n");
   }
   FILE* keyFile = fopen(argv[2], "re");
   if (keyFile == NULL) {
-    error(1, "CLIENT: ERROR could not open key file");
+    error(1, "CLIENT: ERROR could not open key file\n");
   }
   size_t n;
   // Save the contents of the files as strings
   char* input = NULL;
   char* key = NULL;
+  int tries = 0;
+  // label to retry getline for input
+retry_input:;
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
-    error(1, "CLIENT: ERROR could not read input file");
+    // retry 5 times
+    while (tries < 5) {
+      clearerr(inputFile);
+      tries++;
+      goto retry_input;
+    }
+    error(1, "CLIENT: ERROR could not read input file\n");
   }
+  tries = 0;
+  // label to retry getline for key
+retry_key:;
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
-    error(1, "CLIENT: ERROR could not read key file");
+    // retry 5 times
+    while (tries < 5) {
+      clearerr(keyFile);
+      tries++;
+      goto retry_key;
+    }
+    error(1, "CLIENT: ERROR could not read key file\n");
   }
   if (inputLength > keyLength) {
-    error(1, "CLIENT: ERROR key is shorter than input");
+    error(1, "CLIENT: ERROR key is shorter than input\n");
   }
   // Check if there are bad chars in the given files
   find_bad_char(input);
@@ -79,7 +97,7 @@ int main(int argc, char* argv[])
   // Create socket with TCP 
   socketFD = socket(AF_INET, SOCK_STREAM, 0);
   if (socketFD < 0) {
-    error(2, "CLIENT: ERROR opening socket");
+    error(2, "CLIENT: ERROR opening socket\n");
   }
   portNumber = atoi(argv[3]);
   setupAddressStruct(&serverAddress, portNumber);
@@ -87,7 +105,7 @@ int main(int argc, char* argv[])
   // Connect to socket
   if (connect(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0) {
     close(socketFD);
-    error(2, "CLIENT: ERROR connecting to socket");
+    error(2, "CLIENT: ERROR connecting to socket\n");
   }
   
   // Send password and input length
@@ -96,7 +114,7 @@ int main(int argc, char* argv[])
   int checkWritten = send(socketFD, checkConnect, strlen(checkConnect), 0);
   if (checkWritten < 0) {
     close(socketFD);
-    error(2, "CLIENT: ERROR writing to socket");
+    error(2, "CLIENT: ERROR writing to socket\n");
   }
 
   // recv for server response to connection
@@ -111,7 +129,7 @@ int main(int argc, char* argv[])
   n = recv(socketFD, acceptance, 1, 0);
   if (n < 0) {
     close(socketFD);
-    error(2, "CLIENT: ERROR receiving from socket");
+    error(2, "CLIENT: ERROR receiving from socket\n");
   }
   if (atoi(acceptance) == 1) {
     close(socketFD);
@@ -174,7 +192,7 @@ find_bad_char(const char* line) {
   const char* badChars = "!@#$%^&*()_+-={}[]|;:\'\"\\<,>./?`~0123456789";
   char* badCharPtr = strpbrk(line, badChars);
   if (badCharPtr != NULL) {
-    fprintf(stderr, "CLIENT: ERROR invalid characters in file '%c'", *badCharPtr);
+    fprintf(stderr, "CLIENT: ERROR invalid characters in file '%c'\n", *badCharPtr);
     exit(1);
   }
   return;
@@ -190,10 +208,10 @@ send_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = send(fd, pos, count, 0);
     if (n < 0) {
-      error(2, "CLIENT: ERROR failed to send data");
+      error(2, "CLIENT: ERROR failed to send data\n");
     }
     if (n == 0) {
-      error(2, "CLIENT: ERROR wrong server connection");
+      error(2, "CLIENT: ERROR wrong server connection\n");
     }
     pos += n;
     count -= n;
@@ -211,7 +229,7 @@ recv_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = recv(fd, (void*)pos, count, 0);
     if (n < 0) {
-      error(2, "CLIENT: ERROR failed to receive data");
+      error(2, "CLIENT: ERROR failed to receive data\n");
     }
     pos += n;
     count -= n;
