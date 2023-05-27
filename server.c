@@ -171,7 +171,7 @@ send_all(int fd, const void* buffer, size_t count) {
       return -1;
     }
     if (n == 0) {
-      fprintf(stderr, "SERVER: ERROR client broke connection");
+      fprintf(stderr, "SERVER: ERROR client broke connection\n");
       return -1;
     }
     pos += n;
@@ -190,7 +190,7 @@ recv_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = recv(fd, (void*)pos, count, 0);
     if (n < 0) {
-      fprintf(stderr, "SERVER: ERROR failed to receive data");
+      fprintf(stderr, "SERVER: ERROR failed to receive data\n");
       return -1;
     }
     pos += n;
@@ -213,7 +213,7 @@ create_response(int fd, const void* text, const void* key, void* response, size_
   while (count) {
     int n = recv(fd, (void*)keyPos1, count, 0);
     if (n < 0) {
-      fprintf(stderr, "SERVER: ERROR failed to receive key");
+      fprintf(stderr, "SERVER: ERROR failed to receive key\n");
       return -1;
     }
     keyPos1 += n;
@@ -267,7 +267,7 @@ handle_connection(int* socketPtr) {
   // Get all of textBuffer
   int recStatus = recv_all(connectionSocket, textBuffer, textLength);
   if (recStatus < 0) {
-    fprintf(stderr, "SERVER: ERROR failed to get input text from client");
+    fprintf(stderr, "SERVER: ERROR failed to get input text from client\n");
     close(connectionSocket);
     return;
   }
