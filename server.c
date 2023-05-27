@@ -13,7 +13,6 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include "conqueue.h"
 
 // Function Definitions
 void error(int exitCode, char* msg);
@@ -25,6 +24,8 @@ int recv_all(int fd, const void* buffer, size_t count);
 int create_response(int fd, const void* text, const void* key, void* response, size_t count); 
 void handle_connection(int* socketPtr);
 void* thread_function(void* arg);
+void enqueue(int* socketPtr);
+int* dequeue();
 
 // Set global variables
 #ifdef DEC
@@ -39,6 +40,11 @@ pthread_t thread_pool[THREAD_POOL_SIZE];
 // Create mutex and condition for critical sections
 pthread_mutex_t queueMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queueFull = PTHREAD_COND_INITIALIZER;
+
+// Create shared socket pointer queue
+int* queue[10];
+int writeIndex = 0;
+int readIndex = 0;
 
 int main(int argc, char* argv[])
 {
@@ -295,4 +301,31 @@ thread_function(void* args) {
     handle_connection(socketPtr);
   }
   return NULL;
+}
+
+/*
+ * Adds socket pointers to the shared queue
+ * for the threads to take when they finished
+ * their encryption/decryption
+ */
+void
+enqueue(int* socketPtr) {
+  queue[writeIndex++] = socketPtr;
+  // loop back to 0 at 10
+  writeIndex %= 10;
+  return;
+}
+
+/*
+ * Gets a socket pointer from the shared queue.
+ * Returns NULL if readIndex catches up to
+ * the writeIndex.
+ */
+int*
+dequeue() {
+  if (readIndex == writeIndex) return NULL;
+  int* result = queue[readIndex++];
+  // loop back to 0 at 10
+  readIndex %= 10;
+  return result;
 }
