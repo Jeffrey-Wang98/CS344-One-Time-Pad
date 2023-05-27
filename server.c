@@ -187,7 +187,8 @@ send_all(int fd, const void* buffer, size_t count) {
 int
 recv_all(int fd, const void* buffer, size_t count) {
   const unsigned char* pos = buffer;
-  while (count) {
+  int totalRead = 0;
+  while (count && totalRead < 5) {
     int n = recv(fd, (void*)pos, count, 0);
     if (n < 0) {
       fprintf(stderr, "SERVER: ERROR failed to receive data\n");
@@ -238,9 +239,9 @@ void
 handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
-  char pwBuffer[15];
-  memset(pwBuffer, '\0', 15);
-  charsRead = recv(connectionSocket, pwBuffer, 14, 0);
+  char pwBuffer[5];
+  memset(pwBuffer, '\0', 5);
+  charsRead = recv_all(connectionSocket, pwBuffer, 4);
   if (charsRead < 0) {
     fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
     close(connectionSocket);
@@ -251,17 +252,21 @@ handle_connection(int* socketPtr) {
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
   // Wrong client
+  int accept = 0;
+  int reject = -1;
   if (pwLoc == NULL) {
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
-    send(connectionSocket, "1", 2, 0);
+    send_all(connectionSocket, &reject, sizeof(reject));
     close(connectionSocket);
     return;
   }
   // Correct client
-  send(connectionSocket, "2", 1, 0);
-  // Convert length given in password to ssize_t
-  ssize_t textLength = atoi(pwLoc + 4);
-   
+  send_all(connectionSocket, &accept, sizeof(accept));
+
+  // recv_all length
+  ssize_t textLength = 0;
+  recv_all(connectionSocket, &textLength, sizeof(textLength));  
+
   // Getting text file and key from client
   char textBuffer[textLength];
   char keyBuffer[textLength];
