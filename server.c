@@ -247,7 +247,6 @@ handle_connection(int* socketPtr) {
     close(connectionSocket);
     return;
   }
-  fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
   // Checking recv
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
@@ -255,6 +254,7 @@ handle_connection(int* socketPtr) {
   int accept = 0;
   int reject = -1;
   if (pwLoc == NULL) {
+    fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
     send_all(connectionSocket, &reject, sizeof(reject));
     close(connectionSocket);

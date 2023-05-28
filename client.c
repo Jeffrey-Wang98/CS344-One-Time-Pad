@@ -63,17 +63,18 @@ retry_input:;
   if (inputLength == -1) {
     // retry 5 times
     if (tries < 5) {
+      fprintf(stderr, "This is input try #%d\n", tries);
       clearerr(inputFile);
       free(input);
       tries++;
       goto retry_input;
     }
+    fprintf(stderr, "CLIENT: Read from input file '");
+    write(2, input, 20);
+    fprintf(stderr, "'\n");
     error(1, "CLIENT: ERROR could not read input file\n");
   }
-  fprintf(stderr, "CLIENT: Read from input file '");
-  write(2, input, 20);
-  fprintf(stderr, "'\n");
-  tries = 0;
+    tries = 0;
   // label to retry getline for key
 retry_key:;
   char* key = NULL;
@@ -82,19 +83,21 @@ retry_key:;
   if (keyLength == -1) {
     // retry 5 times
     if  (tries < 5) {
+      fprintf(stderr, "This is key try #%d\n", tries);
       clearerr(keyFile);
       free(key);
       tries++;
       goto retry_key;
     }
+    fprintf(stderr, "CLIENT: Read from key file '");
+    write(2, key, 20);
+    fprintf(stderr, "'\n");
     error(1, "CLIENT: ERROR could not read key file\n");
   }
   if (inputLength > keyLength) {
     error(1, "CLIENT: ERROR key is shorter than input\n");
   }
-  fprintf(stderr, "CLIENT: Read from key file '");
-  write(2, key, 20);
-  fprintf(stderr, "'\n");
+  
   // Check if there are bad chars in the given files
   find_bad_char(input);
   find_bad_char(key);
