@@ -71,7 +71,7 @@ retry_input:;
     error(1, "CLIENT: ERROR could not read input file\n");
   }
   fprintf(stderr, "CLIENT: Read from input file '");
-  write(2, input, 50);
+  write(2, input, 20);
   fprintf(stderr, "'\n");
   tries = 0;
   // label to retry getline for key
@@ -93,7 +93,7 @@ retry_key:;
     error(1, "CLIENT: ERROR key is shorter than input\n");
   }
   fprintf(stderr, "CLIENT: Read from key file '");
-  write(2, key, 50);
+  write(2, key, 20);
   fprintf(stderr, "'\n");
   // Check if there are bad chars in the given files
   find_bad_char(input);

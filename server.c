@@ -247,6 +247,7 @@ handle_connection(int* socketPtr) {
     close(connectionSocket);
     return;
   }
+  fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
   // Checking recv
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
