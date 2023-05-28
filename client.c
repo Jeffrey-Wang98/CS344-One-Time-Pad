@@ -55,29 +55,33 @@ int main(int argc, char* argv[])
   }
   size_t n;
   // Save the contents of the files as strings
-  char* input = NULL;
-  char* key = NULL;
   int tries = 0;
-  // label to retry getline for input
 retry_input:;
+  char* input = NULL;
+  // label to retry getline for input
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
     // retry 5 times
-    while (tries < 5) {
+    if (tries < 5) {
       clearerr(inputFile);
+      free(input);
       tries++;
       goto retry_input;
     }
     error(1, "CLIENT: ERROR could not read input file\n");
   }
+  fprintf(stderr, "CLIENT: Read from input file '%s'\n", input);
   tries = 0;
   // label to retry getline for key
 retry_key:;
+  char* key = NULL;
+
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
     // retry 5 times
-    while (tries < 5) {
+    if  (tries < 5) {
       clearerr(keyFile);
+      free(key);
       tries++;
       goto retry_key;
     }
@@ -86,6 +90,7 @@ retry_key:;
   if (inputLength > keyLength) {
     error(1, "CLIENT: ERROR key is shorter than input\n");
   }
+  fprintf(stderr, "CLIENT: Read from key file '%s'\n", key);
   // Check if there are bad chars in the given files
   find_bad_char(input);
   find_bad_char(key);
