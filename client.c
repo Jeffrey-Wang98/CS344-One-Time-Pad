@@ -69,9 +69,7 @@ retry_input:;
       tries++;
       goto retry_input;
     }
-    fprintf(stderr, "CLIENT: Read from input file '");
-    write(2, input, 20);
-    fprintf(stderr, "'\n");
+    fprintf(stderr, "CLIENT: Read from input file %s\n", argv[1]);
     error(1, "CLIENT: ERROR could not read input file\n");
   }
     tries = 0;
@@ -89,9 +87,7 @@ retry_key:;
       tries++;
       goto retry_key;
     }
-    fprintf(stderr, "CLIENT: Read from key file '");
-    write(2, key, 20);
-    fprintf(stderr, "'\n");
+    fprintf(stderr, "CLIENT: Read from key file %s\n", argv[2]);
     error(1, "CLIENT: ERROR could not read key file\n");
   }
   if (inputLength > keyLength) {
@@ -121,6 +117,7 @@ retry_key:;
   }
   
   // Send password and input length
+  fprintf(stderr, "CLIENT: Sending password %s\n", password);
   send_all(socketFD, password, strlen(password));
   
   int acceptance = 1;
