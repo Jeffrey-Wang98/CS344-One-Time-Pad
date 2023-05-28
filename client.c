@@ -210,6 +210,7 @@ send_all(int fd, const void* buffer, size_t count) {
   while (count) {
     int n = send(fd, pos, count, 0);
     if (n < 0) {
+      fprintf(stderr, "Data is %s\n",(char*) buffer);
       error(2, "CLIENT: ERROR failed to send data\n");
     }
     if (n == 0) {
