@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <netinet/tcp.h>
 
 // Function Definitions
 void error(int exitCode, char* msg);
@@ -87,6 +88,9 @@ int main(int argc, char* argv[])
     if (connectionSocket < 0) {
       fprintf(stderr, "SERVER: ERROR on accept\n");
     }
+    // Try setting sockopt to TCP_NODELAY
+    int one = 1;
+    setsockopt(connectionSocket, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     int* socketPtr = &connectionSocket;
     // Critical section of adding connections to the queue
     pthread_mutex_lock(&queueMutex);
