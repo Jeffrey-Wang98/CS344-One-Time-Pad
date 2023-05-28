@@ -243,7 +243,7 @@ handle_connection(int* socketPtr) {
   memset(pwBuffer, '\0', 5);
   charsRead = recv_all(connectionSocket, pwBuffer, 4);
   if (charsRead < 0) {
-    fprintf(stderr, "SERVER: ERROR on recv() from socket\n");
+    fprintf(stderr, "SERVER: ERROR on receiving password\n");
     close(connectionSocket);
     return;
   }
@@ -256,35 +256,51 @@ handle_connection(int* socketPtr) {
   if (pwLoc == NULL) {
     fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
-    send_all(connectionSocket, &reject, sizeof(reject));
+    if (send_all(connectionSocket, &reject, sizeof(reject)) < 0) {
+      fprintf(stderr, "SERVER: ERROR failed to send rejection\n");
+      close(connectionSocket);
+      return;
+    }
     close(connectionSocket);
     return;
   }
   // Correct client
-  send_all(connectionSocket, &accept, sizeof(accept));
+  if (send_all(connectionSocket, &accept, sizeof(accept)) < 0){
+    fprintf(stderr, "SERVER: ERROR failed to send acceptance\n");
+    close(connectionSocket);
+    return;
+  }
 
   // recv_all length
   ssize_t textLength = 0;
-  recv_all(connectionSocket, &textLength, sizeof(textLength));  
+  if (recv_all(connectionSocket, &textLength, sizeof(textLength)) < 0) {
+    fprintf(stderr, "SERVER: ERROR failed to receive length\n");
+    close(connectionSocket);
+    return;
+  } 
+
 
   // Getting text file and key from client
   char textBuffer[textLength];
   char keyBuffer[textLength];
   char resBuffer[textLength];
   // Get all of textBuffer
-  int recStatus = recv_all(connectionSocket, textBuffer, textLength);
-  if (recStatus < 0) {
+  if (recv_all(connectionSocket, textBuffer, textLength) < 0) {
     fprintf(stderr, "SERVER: ERROR failed to get input text from client\n");
     close(connectionSocket);
     return;
   }
   // While getting keyBuffer, encrypt/decrypt while waiting for more
-  recStatus = create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength);
-  int sendStatus = send_all(connectionSocket, resBuffer, textLength);
-  if (sendStatus < 0) {
+  if (create_response(connectionSocket, textBuffer, keyBuffer, resBuffer, textLength) < 0) {
+    fprintf(stderr, "SERVER: ERROR failed to get key text from client\n");
+    close(connectionSocket);
+    return;
+  }
+  if (send_all(connectionSocket, resBuffer, textLength) < 0) {
     fprintf(stderr, "SERVER: ERROR failed to send results\n");
   }
   close(connectionSocket);
+  return;
 
 }
 
