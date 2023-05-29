@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
   else if (pollStatus == -1) {
     error(2, "CLIENT: ERROR polling failed\n");
   }
-  send_all(socketFD, password, strlen(password));
+  send_all(socketFD, password, 4);
   
   int acceptance = 1;
   recv_all(socketFD, &acceptance, sizeof(acceptance));
