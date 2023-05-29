@@ -246,8 +246,8 @@ handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
   char pwBuffer[5];
-  int tries = 0;
-retry_password:;
+  //int tries = 0;
+//retry_password:;
   memset(pwBuffer, '\0', 5);
   charsRead = recv_all(connectionSocket, pwBuffer, 4);
   if (charsRead < 0) {
@@ -265,10 +265,12 @@ retry_password:;
     fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
     // Check if given was not_password
     // if not, must be packet loss
+    /*
     if (check_pw(pwBuffer, not_password) == NULL && tries < 5) {
       tries++;
       goto retry_password;
     }
+    */
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
     if (send_all(connectionSocket, &reject, sizeof(reject)) < 0) {
       fprintf(stderr, "SERVER: ERROR failed to send rejection\n");

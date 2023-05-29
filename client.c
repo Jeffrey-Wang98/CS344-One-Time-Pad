@@ -12,6 +12,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/poll.h>
 
 
 // Setting up function definitions
@@ -119,10 +120,22 @@ int main(int argc, char* argv[])
     close(socketFD);
     error(2, "CLIENT: ERROR connecting to socket\n");
   }
-  int tries = 0;
-retry_password:;
+
+  struct pollfd sockFD[1];
+  sockFD[0].fd = socketFD;
+  sockFD[0].events = POLLOUT;
+
+  //int tries = 0;
+//retry_password:;
   // Send password and input length
   //fprintf(stderr, "CLIENT: Sending password %s\n", password);
+  int pollStatus;
+  if ((pollStatus = poll(sockFD, 1, 3500)) == 0) {
+    error(2, "CLIENT: socket poll timed out!\n");
+  }
+  else if (pollStatus == -1) {
+    error(2, "CLIENT: ERROR polling failed\n");
+  }
   send_all(socketFD, password, strlen(password));
   
   int acceptance = 1;
@@ -136,11 +149,13 @@ retry_password:;
   }
   else if (acceptance != 0) {
     // retry at most 5 more times
+    /*
     if (tries < 5) {
       fprintf(stderr, "CLIENT: Retry #%d for password\n", tries);
       tries++;
       goto retry_password;
     }
+    */
     error(2, "CLIENT: ERROR could not receive acceptance from server\n");
   }
 
