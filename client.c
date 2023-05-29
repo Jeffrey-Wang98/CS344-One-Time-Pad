@@ -248,6 +248,9 @@ send_all(int fd, const void* buffer, size_t count) {
     if (n == 0) {
       error(2, "CLIENT: ERROR wrong server connection\n");
     }
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      error(2, "CLIENT: ERROR send BLOCKED\n");
+    }
     pos += n;
     count -= n;
   }
@@ -266,7 +269,9 @@ recv_all(int fd, const void* buffer, size_t count) {
     if (n < 0) {
       error(2, "CLIENT: ERROR failed to receive data\n");
     }
-    pos += n;
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      error(2, "CLIENT: ERROR recv BLOCKED\n");
+    }    pos += n;
     count -= n;
   }
   return;
