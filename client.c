@@ -133,9 +133,10 @@ retry_password:;
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
     exit(2);
   }
-  else if (acceptance == 1) {
+  else if (acceptance != 0) {
     // retry at most 5 more times
     if (tries < 5) {
+      fprintf(stderr, "CLIENT: Retry #%d for password\n", tries);
       tries++;
       goto retry_password;
     }
