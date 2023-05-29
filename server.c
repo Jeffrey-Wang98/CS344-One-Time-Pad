@@ -246,6 +246,7 @@ handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
   char pwBuffer[5];
+  int tries = 0;
 retry_password:;
   memset(pwBuffer, '\0', 5);
   charsRead = recv_all(connectionSocket, pwBuffer, 4);
@@ -255,7 +256,6 @@ retry_password:;
     return;
   }
   // Checking recv
-  int tries = 0;
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
   // Wrong client

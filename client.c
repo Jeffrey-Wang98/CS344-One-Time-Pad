@@ -128,6 +128,7 @@ retry_password:;
   int acceptance = 1;
   recv_all(socketFD, &acceptance, sizeof(acceptance));
   // Acceptance of 0 = accepted
+  fprintf(stderr, "Acceptances was %d\n", acceptance);
   if (acceptance == -1) {
     close(socketFD);
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
