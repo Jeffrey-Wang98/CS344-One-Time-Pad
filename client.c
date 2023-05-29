@@ -139,7 +139,8 @@ int main(int argc, char* argv[])
   send_all(socketFD, password, 4);
   
   int acceptance = 1;
-  recv_all(socketFD, &acceptance, sizeof(acceptance));
+  //recv_all(socketFD, &acceptance, sizeof(acceptance));
+  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
   // Acceptance of 0 = accepted
   fprintf(stderr, "Acceptances was %d\n", acceptance);
   if (acceptance == -1) {
