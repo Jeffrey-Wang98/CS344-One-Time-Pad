@@ -121,28 +121,35 @@ int main(int argc, char* argv[])
     error(2, "CLIENT: ERROR connecting to socket\n");
   }
 
-  struct pollfd sockFD[1];
-  sockFD[0].fd = socketFD;
-  sockFD[0].events = POLLOUT;
+  //struct pollfd sockFD[1];
+  //sockFD[0].fd = socketFD;
+  //sockFD[0].events = POLLIN;
 
   //int tries = 0;
 //retry_password:;
   // Send password and input length
   //fprintf(stderr, "CLIENT: Sending password %s\n", password);
-  int pollStatus;
-  if ((pollStatus = poll(sockFD, 1, 3500)) == 0) {
-    error(2, "CLIENT: socket poll timed out!\n");
-  }
-  else if (pollStatus == -1) {
-    error(2, "CLIENT: ERROR polling failed\n");
-  }
+  //int pollStatus;
+  //if ((pollStatus = poll(sockFD, 1, -1)) == 0) {
+  //  error(2, "CLIENT: socket poll timed out!\n");
+  //}
+  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
+  //  error(2, "CLIENT: ERROR polling failed\n");
+  //}
   send_all(socketFD, password, 4);
   
   int acceptance = 1;
   //recv_all(socketFD, &acceptance, sizeof(acceptance));
+  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
+  //  error(2, "CLIENT: ERROR polling failed\n");
+  //}
+  //if (sockFD[0].revents & POLLOUT) {
+  //  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
+  //}
   recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
-  // Acceptance of 0 = accepted
-  fprintf(stderr, "Acceptances was %d\n", acceptance);
+    // Acceptance of 0 = accepted
+  if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
+  
   if (acceptance == -1) {
     close(socketFD);
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
@@ -161,6 +168,7 @@ int main(int argc, char* argv[])
   }
 
   // Send textLength
+  
   send_all(socketFD, &inputLength, sizeof(ssize_t));
 
   // Start sending input
