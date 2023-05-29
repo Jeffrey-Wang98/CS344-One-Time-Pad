@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
   //}
   recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
     // Acceptance of 0 = accepted
-  if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
+  //if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
   
   if (acceptance == -1) {
     close(socketFD);

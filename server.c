@@ -48,6 +48,7 @@ pthread_cond_t queueFull = PTHREAD_COND_INITIALIZER;
 int* queue[10];
 int writeIndex = 0;
 int readIndex = 0;
+int count = 0;
 
 int main(int argc, char* argv[])
 {
@@ -329,14 +330,16 @@ void*
 thread_function(void* args) {
   while(1) {
     // Critical section to dequeue from shared queue
+    int* socketPtr = malloc(sizeof(int));
     pthread_mutex_lock(&queueMutex);
-    int* socketPtr = dequeue();
+    //int* socketPtr = dequeue();
     // if socketPtr is NULL, wait for signal
     // that main has added more connections to queue
-    while (socketPtr == NULL) {
+    while (count == 0) {
       pthread_cond_wait(&queueFull, &queueMutex);
-      socketPtr = dequeue();
+      //socketPtr = dequeue();
     }
+    socketPtr = dequeue();
     pthread_mutex_unlock(&queueMutex);
     handle_connection(socketPtr);
   }
@@ -353,6 +356,7 @@ enqueue(int* socketPtr) {
   queue[writeIndex++] = socketPtr;
   // loop back to 0 at 10
   writeIndex %= 10;
+  count++;
   return;
 }
 
@@ -367,5 +371,6 @@ dequeue() {
   int* result = queue[readIndex++];
   // loop back to 0 at 10
   readIndex %= 10;
+  count--;
   return result;
 }
