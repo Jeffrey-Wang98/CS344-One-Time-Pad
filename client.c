@@ -55,13 +55,14 @@ int main(int argc, char* argv[])
   }
   size_t n;
   // Save the contents of the files as strings
-  int tries = 0;
-retry_input:;
+  //int tries = 0;
+//retry_input:;
   char* input = NULL;
   // label to retry getline for input
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
     // retry 5 times
+    /*
     if (tries < 5) {
       fprintf(stderr, "This is input try #%d\n", tries);
       clearerr(inputFile);
@@ -69,17 +70,19 @@ retry_input:;
       tries++;
       goto retry_input;
     }
+    */
     fprintf(stderr, "CLIENT: Read from input file %s\n", argv[1]);
     error(1, "CLIENT: ERROR could not read input file\n");
   }
-    tries = 0;
+    //tries = 0;
   // label to retry getline for key
-retry_key:;
+//retry_key:;
   char* key = NULL;
 
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
     // retry 5 times
+    /*
     if  (tries < 5) {
       fprintf(stderr, "This is key try #%d\n", tries);
       clearerr(keyFile);
@@ -87,6 +90,7 @@ retry_key:;
       tries++;
       goto retry_key;
     }
+    */
     fprintf(stderr, "CLIENT: Read from key file %s\n", argv[2]);
     error(1, "CLIENT: ERROR could not read key file\n");
   }
@@ -115,9 +119,10 @@ retry_key:;
     close(socketFD);
     error(2, "CLIENT: ERROR connecting to socket\n");
   }
-  
+  int tries = 0;
+retry_password:;
   // Send password and input length
-  fprintf(stderr, "CLIENT: Sending password %s\n", password);
+  //fprintf(stderr, "CLIENT: Sending password %s\n", password);
   send_all(socketFD, password, strlen(password));
   
   int acceptance = 1;
@@ -129,7 +134,11 @@ retry_key:;
     exit(2);
   }
   else if (acceptance == 1) {
-    close(socketFD);
+    // retry at most 5 more times
+    if (tries < 5) {
+      tries++;
+      goto retry_password;
+    }
     error(2, "CLIENT: ERROR could not receive acceptance from server\n");
   }
 

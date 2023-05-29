@@ -31,8 +31,10 @@ int* dequeue();
 // Set global variables
 #ifdef DEC
   const char* password = "dec_";
+  const char* not_password = "enc_";
 #else
   const char* password = "enc_";
+  const char* not_password = "dec_";
 #endif
 // Making a pool of threads for concurrency
 #define THREAD_POOL_SIZE 5
@@ -89,8 +91,8 @@ int main(int argc, char* argv[])
       fprintf(stderr, "SERVER: ERROR on accept\n");
     }
     // Try setting sockopt to TCP_NODELAY
-    int one = 1;
-    setsockopt(connectionSocket, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+    //int one = 1;
+    //setsockopt(connectionSocket, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     int* socketPtr = &connectionSocket;
     // Critical section of adding connections to the queue
     pthread_mutex_lock(&queueMutex);
@@ -244,6 +246,7 @@ handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
   char pwBuffer[5];
+retry_password:;
   memset(pwBuffer, '\0', 5);
   charsRead = recv_all(connectionSocket, pwBuffer, 4);
   if (charsRead < 0) {
@@ -252,6 +255,7 @@ handle_connection(int* socketPtr) {
     return;
   }
   // Checking recv
+  int tries = 0;
   char* pwLoc = check_pw(pwBuffer, password);
   // Checking the password
   // Wrong client
@@ -259,6 +263,12 @@ handle_connection(int* socketPtr) {
   int reject = -1;
   if (pwLoc == NULL) {
     fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
+    // Check if given was not_password
+    // if not, must be packet loss
+    if (check_pw(pwBuffer, not_password) == NULL && tries < 5) {
+      tries++;
+      goto retry_password;
+    }
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
     if (send_all(connectionSocket, &reject, sizeof(reject)) < 0) {
       fprintf(stderr, "SERVER: ERROR failed to send rejection\n");
