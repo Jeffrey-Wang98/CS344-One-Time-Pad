@@ -184,7 +184,8 @@ int main(int argc, char* argv[])
   memset(responseBuffer, '\n', inputLength + 1);
   // recv_all returning = everything was received
   recv_all(socketFD, &responseBuffer, inputLength);
-
+  
+  fflush(stdout);
   write(1, responseBuffer, inputLength + 1); 
   // Close socket
   close(socketFD);
