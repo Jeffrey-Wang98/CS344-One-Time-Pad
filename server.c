@@ -30,11 +30,11 @@ int* dequeue();
 
 // Set global variables
 #ifdef DEC
-  const char* password = "dec_";
-  const char* not_password = "enc_";
+  const char password[5] = "dec_";
+  const char not_password[5] = "enc_";
 #else
-  const char* password = "enc_";
-  const char* not_password = "dec_";
+  const char password[5] = "enc_";
+  const char not_password[5] = "dec_";
 #endif
 // Making a pool of threads for concurrency
 #define THREAD_POOL_SIZE 5
@@ -246,10 +246,10 @@ void
 handle_connection(int* socketPtr) {
   int connectionSocket = *socketPtr;
   int charsRead;
-  char pwBuffer[5];
+  char pwBuffer[5] = "base";
   //int tries = 0;
-//retry_password:;
-  memset(pwBuffer, '\0', 5);
+retry_password:;
+  //memset(pwBuffer, '\0', 5);
   //charsRead = recv_all(connectionSocket, pwBuffer, 4);
   charsRead = recv(connectionSocket, pwBuffer, 4, MSG_WAITALL);
   if (charsRead < 0) {
@@ -267,12 +267,10 @@ handle_connection(int* socketPtr) {
     fprintf(stderr, "SERVER: Received pwd '%s'\n", pwBuffer);
     // Check if given was not_password
     // if not, must be packet loss
-    /*
-    if (check_pw(pwBuffer, not_password) == NULL && tries < 5) {
-      tries++;
+    
+    if (strcmp(pwBuffer, "base") == 0) {
       goto retry_password;
     }
-    */
     fprintf(stderr, "SERVER: ERROR wrong client connection\n");
     if (send_all(connectionSocket, &reject, sizeof(reject)) < 0) {
       fprintf(stderr, "SERVER: ERROR failed to send rejection\n");

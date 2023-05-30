@@ -24,9 +24,9 @@ void recv_all(int fd, const void* buffer, size_t count);
 
 // Setting up global variables
 #ifdef DEC
-  const char* password = "dec_";
+  const char password[5] = "dec_";
 #else
-  const char* password = "enc_";
+  const char password[5] = "enc_";
 #endif
 
 
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
   //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
   //  error(2, "CLIENT: ERROR polling failed\n");
   //}
-  send_all(socketFD, password, 4);
+  send_all(socketFD, password, sizeof(password) - 1);
   
   int acceptance = 1;
   //recv_all(socketFD, &acceptance, sizeof(acceptance));
@@ -146,7 +146,8 @@ int main(int argc, char* argv[])
   //if (sockFD[0].revents & POLLOUT) {
   //  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
   //}
-  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
+  //recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
+  recv_all(socketFD, &acceptance, sizeof(acceptance));
     // Acceptance of 0 = accepted
   //if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
   
@@ -244,9 +245,6 @@ send_all(int fd, const void* buffer, size_t count) {
     if (n < 0) {
       fprintf(stderr, "Data is %s\n",(char*) buffer);
       error(2, "CLIENT: ERROR failed to send data\n");
-    }
-    if (n == 0) {
-      error(2, "CLIENT: ERROR wrong server connection\n");
     }
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
       error(2, "CLIENT: ERROR send BLOCKED\n");
