@@ -250,8 +250,8 @@ handle_connection(int* socketPtr) {
   //int tries = 0;
 retry_password:;
   //memset(pwBuffer, '\0', 5);
-  //charsRead = recv_all(connectionSocket, pwBuffer, 4);
-  charsRead = recv(connectionSocket, pwBuffer, 4, MSG_WAITALL);
+  charsRead = recv_all(connectionSocket, &pwBuffer, sizeof(pwBuffer) - 1);
+  //charsRead = recv(connectionSocket, &pwBuffer, sizeof(pwBuffer) - 1, MSG_WAITALL);
   if (charsRead < 0) {
     fprintf(stderr, "SERVER: ERROR on receiving password\n");
     close(connectionSocket);

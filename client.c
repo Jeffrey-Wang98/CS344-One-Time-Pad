@@ -136,7 +136,8 @@ int main(int argc, char* argv[])
   //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
   //  error(2, "CLIENT: ERROR polling failed\n");
   //}
-  send_all(socketFD, password, sizeof(password) - 1);
+  send_all(socketFD, &password, sizeof(password) - 1);
+  fprintf(stderr, "CLIENT: Sending password %s to server\n", password);
   
   int acceptance = 1;
   //recv_all(socketFD, &acceptance, sizeof(acceptance));
@@ -147,10 +148,11 @@ int main(int argc, char* argv[])
   //  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
   //}
   //recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
+  fprintf(stderr, "Before Acceptance = %d\n", acceptance);
   recv_all(socketFD, &acceptance, sizeof(acceptance));
+  fprintf(stderr, "After Acceptance = %d\n", acceptance);
     // Acceptance of 0 = accepted
   //if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
-  
   if (acceptance == -1) {
     close(socketFD);
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
@@ -270,7 +272,8 @@ recv_all(int fd, const void* buffer, size_t count) {
     }
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
       error(2, "CLIENT: ERROR recv BLOCKED\n");
-    }    pos += n;
+    }
+    pos += n;
     count -= n;
   }
   return;
