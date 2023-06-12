@@ -326,9 +326,6 @@ retry_password:;
  */
 void*
 thread_function(void* args) {
-  // Announce that thread started
-  pthread_t tid = pthread_self();
-  fprintf(stderr, "Thread %ld has started!\n", tid);
   while(1) {
     // Critical section to dequeue from shared queue
     int* socketPtr = malloc(sizeof(int));
@@ -344,9 +341,6 @@ thread_function(void* args) {
     pthread_mutex_unlock(&queueMutex);
     
     handle_connection(socketPtr);
-    
-    // Announce thread finished work
-    fprintf(stderr, "Thread %ld has closed socket\n", tid);
   }
   return NULL;
 }

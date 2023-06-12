@@ -55,43 +55,18 @@ int main(int argc, char* argv[])
     error(1, "CLIENT: ERROR could not open key file\n");
   }
   size_t n;
+
   // Save the contents of the files as strings
-  //int tries = 0;
-//retry_input:;
   char* input = NULL;
-  // label to retry getline for input
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
-    // retry 5 times
-    /*
-    if (tries < 5) {
-      fprintf(stderr, "This is input try #%d\n", tries);
-      clearerr(inputFile);
-      free(input);
-      tries++;
-      goto retry_input;
-    }
-    */
     fprintf(stderr, "CLIENT: Read from input file %s\n", argv[1]);
     error(1, "CLIENT: ERROR could not read input file\n");
   }
-    //tries = 0;
-  // label to retry getline for key
-//retry_key:;
   char* key = NULL;
 
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
-    // retry 5 times
-    /*
-    if  (tries < 5) {
-      fprintf(stderr, "This is key try #%d\n", tries);
-      clearerr(keyFile);
-      free(key);
-      tries++;
-      goto retry_key;
-    }
-    */
     fprintf(stderr, "CLIENT: Read from key file %s\n", argv[2]);
     error(1, "CLIENT: ERROR could not read key file\n");
   }
@@ -121,55 +96,20 @@ int main(int argc, char* argv[])
     error(2, "CLIENT: ERROR connecting to socket\n");
   }
 
-  //struct pollfd sockFD[1];
-  //sockFD[0].fd = socketFD;
-  //sockFD[0].events = POLLIN;
-
-  //int tries = 0;
-//retry_password:;
-  // Send password and input length
-  //fprintf(stderr, "CLIENT: Sending password %s\n", password);
-  //int pollStatus;
-  //if ((pollStatus = poll(sockFD, 1, -1)) == 0) {
-  //  error(2, "CLIENT: socket poll timed out!\n");
-  //}
-  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
-  //  error(2, "CLIENT: ERROR polling failed\n");
-  //}
   send_all(socketFD, &password, sizeof(password) - 1);
-  fprintf(stderr, "CLIENT: Sending password %s to server\n", password);
   
   int acceptance = 1;
-  //recv_all(socketFD, &acceptance, sizeof(acceptance));
-  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
-  //  error(2, "CLIENT: ERROR polling failed\n");
-  //}
-  //if (sockFD[0].revents & POLLOUT) {
-  //  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
-  //}
-  //recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
-  fprintf(stderr, "Before Acceptance = %d\n", acceptance);
+
   recv_all(socketFD, &acceptance, sizeof(acceptance));
-  fprintf(stderr, "After Acceptance = %d\n", acceptance);
-    // Acceptance of 0 = accepted
-  //if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
+  // Acceptance of 0 = accepted
   if (acceptance == -1) {
     close(socketFD);
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
     exit(2);
   }
   else if (acceptance != 0) {
-    // retry at most 5 more times
-    /*
-    if (tries < 5) {
-      fprintf(stderr, "CLIENT: Retry #%d for password\n", tries);
-      tries++;
-      goto retry_password;
-    }
-    */
     error(2, "CLIENT: ERROR could not receive acceptance from server\n");
   }
-
   // Send textLength
   
   send_all(socketFD, &inputLength, sizeof(ssize_t));
