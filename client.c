@@ -24,9 +24,9 @@ void recv_all(int fd, const void* buffer, size_t count);
 
 // Setting up global variables
 #ifdef DEC
-  const char* password = "dec_";
+  const char password[5] = "dec_";
 #else
-  const char* password = "enc_";
+  const char password[5] = "enc_";
 #endif
 
 
@@ -55,43 +55,18 @@ int main(int argc, char* argv[])
     error(1, "CLIENT: ERROR could not open key file\n");
   }
   size_t n;
+
   // Save the contents of the files as strings
-  //int tries = 0;
-//retry_input:;
   char* input = NULL;
-  // label to retry getline for input
   ssize_t inputLength = getline(&input, &n, inputFile);
   if (inputLength == -1) {
-    // retry 5 times
-    /*
-    if (tries < 5) {
-      fprintf(stderr, "This is input try #%d\n", tries);
-      clearerr(inputFile);
-      free(input);
-      tries++;
-      goto retry_input;
-    }
-    */
     fprintf(stderr, "CLIENT: Read from input file %s\n", argv[1]);
     error(1, "CLIENT: ERROR could not read input file\n");
   }
-    //tries = 0;
-  // label to retry getline for key
-//retry_key:;
   char* key = NULL;
 
   ssize_t keyLength = getline(&key, &n, keyFile);
   if (keyLength == -1) {
-    // retry 5 times
-    /*
-    if  (tries < 5) {
-      fprintf(stderr, "This is key try #%d\n", tries);
-      clearerr(keyFile);
-      free(key);
-      tries++;
-      goto retry_key;
-    }
-    */
     fprintf(stderr, "CLIENT: Read from key file %s\n", argv[2]);
     error(1, "CLIENT: ERROR could not read key file\n");
   }
@@ -121,52 +96,20 @@ int main(int argc, char* argv[])
     error(2, "CLIENT: ERROR connecting to socket\n");
   }
 
-  //struct pollfd sockFD[1];
-  //sockFD[0].fd = socketFD;
-  //sockFD[0].events = POLLIN;
-
-  //int tries = 0;
-//retry_password:;
-  // Send password and input length
-  //fprintf(stderr, "CLIENT: Sending password %s\n", password);
-  //int pollStatus;
-  //if ((pollStatus = poll(sockFD, 1, -1)) == 0) {
-  //  error(2, "CLIENT: socket poll timed out!\n");
-  //}
-  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
-  //  error(2, "CLIENT: ERROR polling failed\n");
-  //}
-  send_all(socketFD, password, 4);
+  send_all(socketFD, &password, sizeof(password) - 1);
   
   int acceptance = 1;
-  //recv_all(socketFD, &acceptance, sizeof(acceptance));
-  //if ((pollStatus = poll(sockFD, 1, -1)) == -1) {
-  //  error(2, "CLIENT: ERROR polling failed\n");
-  //}
-  //if (sockFD[0].revents & POLLOUT) {
-  //  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
-  //}
-  recv(socketFD, &acceptance, sizeof(acceptance), MSG_WAITALL);
-    // Acceptance of 0 = accepted
-  //if (acceptance != 0)fprintf(stderr, "Acceptances was %d\n", acceptance);
-  
+
+  recv_all(socketFD, &acceptance, sizeof(acceptance));
+  // Acceptance of 0 = accepted
   if (acceptance == -1) {
     close(socketFD);
     fprintf(stderr, "CLIENT: ERROR could not contact %sserver on port %d\n", password, portNumber);
     exit(2);
   }
   else if (acceptance != 0) {
-    // retry at most 5 more times
-    /*
-    if (tries < 5) {
-      fprintf(stderr, "CLIENT: Retry #%d for password\n", tries);
-      tries++;
-      goto retry_password;
-    }
-    */
     error(2, "CLIENT: ERROR could not receive acceptance from server\n");
   }
-
   // Send textLength
   
   send_all(socketFD, &inputLength, sizeof(ssize_t));
@@ -183,7 +126,8 @@ int main(int argc, char* argv[])
   memset(responseBuffer, '\n', inputLength + 1);
   // recv_all returning = everything was received
   recv_all(socketFD, &responseBuffer, inputLength);
-
+  
+  fflush(stdout);
   write(1, responseBuffer, inputLength + 1); 
   // Close socket
   close(socketFD);
@@ -245,9 +189,6 @@ send_all(int fd, const void* buffer, size_t count) {
       fprintf(stderr, "Data is %s\n",(char*) buffer);
       error(2, "CLIENT: ERROR failed to send data\n");
     }
-    if (n == 0) {
-      error(2, "CLIENT: ERROR wrong server connection\n");
-    }
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
       error(2, "CLIENT: ERROR send BLOCKED\n");
     }
@@ -271,7 +212,8 @@ recv_all(int fd, const void* buffer, size_t count) {
     }
     if (errno == EWOULDBLOCK || errno == EAGAIN) {
       error(2, "CLIENT: ERROR recv BLOCKED\n");
-    }    pos += n;
+    }
+    pos += n;
     count -= n;
   }
   return;
