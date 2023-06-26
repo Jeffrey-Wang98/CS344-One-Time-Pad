@@ -1,4 +1,4 @@
-# CS344-OTP
+# One-Time-Pad
 One-Time Pad Client/Server in C
 
 Written for Operating Systems CS344
